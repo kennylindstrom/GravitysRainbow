@@ -9,7 +9,7 @@ A full-screen 2D N-body gravity sandbox for the browser. A sun sits at the cente
 - **Launch a planet:** click/touch and *pull back* like a slingshot — the planet launches in the opposite direction. Pull farther for more speed.
 - **Choose a size:** while holding, the planet throbs through sizes from Mercury to Jupiter. Release at the moment you want.
 - **Aim with the preview:** a dotted line shows an estimate of the initial orbit, and a label shows mass (Earth masses), distance (AU), and speed relative to a circular orbit.
-- **Collisions:** planets that hit the sun or each other are destroyed.
+- **Collisions:** planets that hit the sun are destroyed. Planets that hit each other are destroyed too — or merge, if enabled in the menu.
 
 ### Controls
 
@@ -26,6 +26,7 @@ The **☰** menu (top right) has sliders for:
 - **Planet mass** — 1× to 1000× gravitational multiplier (makes planet–planet interactions visible)
 - **Speed** — 1/16 to 64 simulated years per second
 - **Trail length** — off to 2000 points
+- **Merge planets on collision** — instead of both planets being destroyed, they combine into one planet (mass and momentum conserved) with a color blended from the two
 
 After your third planet, the instructions collapse into the **ⓘ** button (top left).
 

@@ -21,6 +21,7 @@
 
   const sun = { x: 0, y: 0, vx: 0, vy: 0, m: SUN_MASS, ax: 0, ay: 0, sun: true };
   let planetMult = 1;     // gravitational mass multiplier for planets (sizes unchanged)
+  let mergeOnCollision = false;
   let planets = [];
   let flashes = [];
   let paused = false;
@@ -51,7 +52,7 @@
   }
 
   function planetRadiusPx(m) {
-    const t = Math.log(m / MIN_MASS) / Math.log(MAX_MASS / MIN_MASS);
+    const t = Math.min(1.3, Math.log(m / MIN_MASS) / Math.log(MAX_MASS / MIN_MASS));
     return Math.max(2.5, SUN_PX * (0.18 + 0.42 * t));
   }
 
@@ -77,9 +78,17 @@
 
   // Golden-angle hue stepping (plus jitter) keeps consecutive colors well apart.
   let lastHue = Math.random() * 360;
-  function randomColor() {
+  function randomHsl() {
     lastHue = (lastHue + 137.508 + (Math.random() - 0.5) * 30) % 360;
-    return `hsl(${Math.floor(lastHue)}, ${70 + Math.random() * 25}%, ${55 + Math.random() * 15}%)`;
+    return [lastHue, 70 + Math.random() * 25, 55 + Math.random() * 15];
+  }
+  const hslStr = ([h, s, l]) => `hsl(${h.toFixed(0)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%)`;
+  // Even blend of two colors; hue is averaged around the color wheel (shortest way).
+  function blendHsl(a, b) {
+    const ra = a[0] * Math.PI / 180, rb = b[0] * Math.PI / 180;
+    let h = Math.atan2(Math.sin(ra) + Math.sin(rb), Math.cos(ra) + Math.cos(rb)) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return [h, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
   }
 
   // ---------- Physics ----------
@@ -122,24 +131,48 @@
     detectCollisions();
   }
 
+  function mergePlanets(a, b) {
+    const m = a.m + b.m;
+    const big = a.m >= b.m ? a : b;
+    const hsl = blendHsl(a.hsl, b.hsl);
+    const merged = {
+      x: (a.x * a.m + b.x * b.m) / m, y: (a.y * a.m + b.y * b.m) / m,
+      vx: (a.vx * a.m + b.vx * b.m) / m, vy: (a.vy * a.m + b.vy * b.m) / m,   // momentum conserved
+      baseM: a.baseM + b.baseM, m, hsl, color: hslStr(hsl), ax: 0, ay: 0, trail: big.trail,
+    };
+    merged.rpx = planetRadiusPx(merged.baseM);
+    flashes.push({ x: merged.x - sun.x, y: merged.y - sun.y, color: merged.color, t: 0, r: merged.rpx });
+    return merged;
+  }
+
   function detectCollisions() {
     const dead = new Set();
+    const born = [];
     const pos = planets.map(p => toScreen(p.x, p.y));
     for (let i = 0; i < planets.length; i++) {
       const p = planets[i];
+      if (dead.has(p)) continue;
       const [sx, sy] = pos[i];
       if (Math.hypot(sx - CX, sy - CY) < SUN_PX + p.rpx * 0.5) { dead.add(p); continue; }
       if (Math.hypot(p.x - sun.x, p.y - sun.y) > ESCAPE_AU) { p.escaped = true; dead.add(p); continue; }
       for (let j = i + 1; j < planets.length; j++) {
         const q = planets[j];
-        if (Math.hypot(sx - pos[j][0], sy - pos[j][1]) < p.rpx + q.rpx) { dead.add(p); dead.add(q); }
+        if (dead.has(q)) continue;
+        if (Math.hypot(sx - pos[j][0], sy - pos[j][1]) < p.rpx + q.rpx) {
+          if (mergeOnCollision) {
+            p.merged = q.merged = true;
+            born.push(mergePlanets(p, q));
+          }
+          dead.add(p); dead.add(q);
+          break;
+        }
       }
     }
     if (dead.size) {
       for (const p of dead) {
-        if (!p.escaped) flashes.push({ x: p.x - sun.x, y: p.y - sun.y, color: p.color, t: 0, r: p.rpx });
+        if (!p.escaped && !p.merged) flashes.push({ x: p.x - sun.x, y: p.y - sun.y, color: p.color, t: 0, r: p.rpx });
       }
-      planets = planets.filter(p => !dead.has(p));
+      planets = planets.filter(p => !dead.has(p)).concat(born);
       computeAccelerations([sun, ...planets]);
     }
   }
@@ -224,7 +257,8 @@
     if (Math.hypot(x - CX, y - CY) < SUN_PX * 1.5) return;
     try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic/stale pointer */ }
     // Random starting phase: quick flicks give a random size; holding lets you time it.
-    drag = { id: e.pointerId, sx: x, sy: y, ex: x, ey: y, t0: performance.now(), phase: Math.random(), color: randomColor() };
+    drag = { id: e.pointerId, sx: x, sy: y, ex: x, ey: y, t0: performance.now(), phase: Math.random(), hsl: randomHsl() };
+    drag.color = hslStr(drag.hsl);
     updateDragSize(drag.t0);
   });
   canvas.addEventListener('pointermove', e => {
@@ -236,7 +270,7 @@
     if (!cancelled) {
       updateDragSize(performance.now());
       const s = launchVelocity(drag);
-      const p = { x: s.x, y: s.y, vx: s.vx, vy: s.vy, baseM: drag.m, m: drag.m * planetMult, color: drag.color, rpx: drag.rpx, ax: 0, ay: 0, trail: [] };
+      const p = { x: s.x, y: s.y, vx: s.vx, vy: s.vy, baseM: drag.m, m: drag.m * planetMult, hsl: drag.hsl, color: drag.color, rpx: drag.rpx, ax: 0, ay: 0, trail: [] };
       planets.push(p);
       if (++launchCount === 3) { document.body.classList.add('compact'); helpEl.classList.add('hidden'); }
       computeAccelerations([sun, ...planets]);
@@ -291,9 +325,12 @@
     for (const p of planets) if (p.trail.length > trailMax) p.trail.splice(0, p.trail.length - trailMax);
   });
   const helpEl = document.getElementById('help');
+  const mergeToggle = document.getElementById('mergeToggle');
+  mergeToggle.addEventListener('change', () => { mergeOnCollision = mergeToggle.checked; });
   let launchCount = 0;
   document.getElementById('infoBtn').addEventListener('click', () => helpEl.classList.toggle('hidden'));
   document.getElementById('resetSettings').addEventListener('click', () => {
+    mergeToggle.checked = false; mergeOnCollision = false;
     trailSlider.value = 300; trailSlider.dispatchEvent(new Event('input'));
     sunSlider.value = 0; planetSlider.value = 0;
     sunSlider.dispatchEvent(new Event('input'));
