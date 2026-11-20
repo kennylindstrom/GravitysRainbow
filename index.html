@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Gravity's Rainbow – 2D N-Body Sandbox</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: crosshair; }
+  #stats, #help {
+    position: fixed; left: 12px; color: #cfd8ff; font: 13px/1.5 system-ui, sans-serif;
+    pointer-events: none; text-shadow: 0 0 4px #000; user-select: none;
+  }
+  #stats { bottom: 10px; }
+  #stats b { color: #fff; }
+  #help { top: 14px; opacity: .75; transition: opacity .3s; }
+  #help.hidden { opacity: 0; }
+  body.compact #help { top: 60px; padding: 8px 12px; border-radius: 8px; background: rgba(12,14,30,.88);
+    border: 1px solid rgba(150,170,255,.25); opacity: 1; }
+  body.compact #help.hidden { opacity: 0; }
+  #infoBtn {
+    position: fixed; top: 10px; left: 12px; width: 40px; height: 40px; z-index: 2; display: none;
+    background: rgba(20,24,48,.75); border: 1px solid rgba(150,170,255,.3); border-radius: 50%;
+    color: #dfe6ff; font: italic bold 20px Georgia, serif; cursor: pointer;
+  }
+  #infoBtn:hover { background: rgba(40,48,90,.85); }
+  body.compact #infoBtn { display: block; }
+  #menuBtn {
+    position: fixed; top: 10px; right: 12px; width: 40px; height: 40px; z-index: 2;
+    background: rgba(20,24,48,.75); border: 1px solid rgba(150,170,255,.3); border-radius: 8px;
+    color: #dfe6ff; font-size: 22px; line-height: 1; cursor: pointer;
+  }
+  #menuBtn:hover { background: rgba(40,48,90,.85); }
+  #menu {
+    position: fixed; top: 58px; right: 12px; width: 260px; z-index: 2; box-sizing: border-box;
+    padding: 14px 16px; border-radius: 10px; background: rgba(12,14,30,.88);
+    border: 1px solid rgba(150,170,255,.25); color: #cfd8ff; font: 13px/1.4 system-ui, sans-serif;
+    backdrop-filter: blur(6px); transform-origin: top right;
+    transition: opacity .2s, transform .2s; opacity: 0; transform: scale(.95); pointer-events: none;
+  }
+  #menu.open { opacity: 1; transform: none; pointer-events: auto; }
+  #menu label { display: flex; justify-content: space-between; margin-top: 10px; }
+  #menu label:first-child { margin-top: 0; }
+  #menu label span { color: #fff; font-variant-numeric: tabular-nums; }
+  #menu input[type=range] { width: 100%; accent-color: #ffb347; touch-action: none; }
+  #menu button.reset {
+    margin-top: 12px; width: 100%; padding: 6px; border-radius: 6px; cursor: pointer;
+    background: rgba(60,70,130,.5); color: #dfe6ff; border: 1px solid rgba(150,170,255,.3);
+  }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div id="stats"></div>
+<button id="infoBtn" aria-label="Show instructions" aria-controls="help">i</button>
+<div id="help">Click/touch &amp; pull back to slingshot a planet (it launches opposite the pull).<br>
+  Hold while aiming: the planet throbs through sizes — release to pick one.<br>
+  Space: pause · +/−: speed · C: clear · F: fullscreen</div>
+<button id="menuBtn" aria-label="Settings" aria-controls="menu">&#9776;</button>
+<div id="menu">
+  <label for="sunMass">Solar mass <span id="sunMassVal">1.0×</span></label>
+  <input id="sunMass" type="range" min="-1" max="1" step="0.01" value="0">
+  <label for="planetMass">Planet mass <span id="planetMassVal">1.0×</span></label>
+  <input id="planetMass" type="range" min="0" max="3" step="0.01" value="0">
+  <label for="speed">Speed <span id="speedVal">1.0 yr/s</span></label>
+  <input id="speed" type="range" min="-4" max="6" step="0.05" value="0">
+  <label for="trailLen">Trail length <span id="trailLenVal">300</span></label>
+  <input id="trailLen" type="range" min="0" max="2000" step="10" value="300">
+  <button class="reset" id="resetSettings">Reset to defaults</button>
+</div>
+<script src="gravity.js"></script>
+</body>
+</html>
