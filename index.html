@@ -33,7 +33,8 @@
   #menuBtn:hover { background: rgba(40,48,90,.85); }
   #menu {
     position: fixed; top: 58px; right: 12px; width: 260px; z-index: 2; box-sizing: border-box;
-    padding: 14px 16px; border-radius: 10px; background: rgba(12,14,30,.88);
+    padding: 14px 16px; max-height: calc(100dvh - 70px); overflow-y: auto;
+    border-radius: 10px; background: rgba(12,14,30,.88);
     border: 1px solid rgba(150,170,255,.25); color: #cfd8ff; font: 13px/1.4 system-ui, sans-serif;
     backdrop-filter: blur(6px); transform-origin: top right;
     transition: opacity .2s, transform .2s; opacity: 0; transform: scale(.95); pointer-events: none;
@@ -69,6 +70,8 @@
   <label for="trailLen">Trail length <span id="trailLenVal">300</span></label>
   <input id="trailLen" type="range" min="0" max="2000" step="10" value="300">
   <label class="toggle" for="mergeToggle">Merge planets on collision <input id="mergeToggle" type="checkbox"></label>
+  <button class="reset" id="createSolarSystem">Create solar system</button>
+  <button class="reset" id="clearPlanets">Clear planets</button>
   <button class="reset" id="resetSettings">Reset to defaults</button>
 </div>
 <script src="gravity.js"></script>

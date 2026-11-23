@@ -28,6 +28,10 @@ The **☰** menu (top right) has sliders for:
 - **Trail length** — off to 2000 points
 - **Merge planets on collision** — instead of both planets being destroyed, they combine into one planet (mass and momentum conserved) with a color blended from the two
 
+**Create solar system** adds all eight planets with approximate real masses, orbital distances, and eccentricities. Their starting positions are illustrative, not the planets' current positions. The preset uses the current mass settings, so use the defaults for real masses; existing planets remain in the simulation.
+
+**Clear planets** removes all planets, just like the `C` key.
+
 After your third planet, the instructions collapse into the **ⓘ** button (top left).
 
 ## How it works

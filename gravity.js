@@ -11,6 +11,17 @@
   const VIEW_AU = 40;         // screen edge ≈ just beyond Neptune (30 AU)
   const ESCAPE_AU = 200;      // planets beyond this are discarded
   const SOFTENING2 = 1e-6;
+  // Masses in Earth masses; semimajor axes in AU.
+  const SOLAR_SYSTEM = [
+    { mass: 0.0553, axis: 0.3871, eccentricity: 0.2056 },
+    { mass: 0.815, axis: 0.7233, eccentricity: 0.0068 },
+    { mass: 1, axis: 1.0000, eccentricity: 0.0167 },
+    { mass: 0.1074, axis: 1.5237, eccentricity: 0.0934 },
+    { mass: 317.83, axis: 5.2028, eccentricity: 0.0489 },
+    { mass: 95.16, axis: 9.5388, eccentricity: 0.0565 },
+    { mass: 14.54, axis: 19.1914, eccentricity: 0.0472 },
+    { mass: 17.15, axis: 30.0611, eccentricity: 0.0086 },
+  ];
   let trailMax = 300;     // trail points per planet (user adjustable)
 
   const canvas = document.getElementById('sky');
@@ -208,6 +219,24 @@
     return { x: wx, y: wy, vx: sun.vx + dwx * v, vy: sun.vy + dwy * v, v, vcirc };
   }
 
+  function createSolarSystem() {
+    SOLAR_SYSTEM.forEach(({ mass, axis, eccentricity }, i) => {
+      const baseM = mass * EARTH_MASS;
+      const m = baseM * planetMult;
+      const angle = i * 2 * Math.PI / SOLAR_SYSTEM.length;
+      const radius = axis * (1 - eccentricity);
+      const v = Math.sqrt(G * (sun.m + m) * (1 + eccentricity) / radius);
+      const hsl = randomHsl();
+      planets.push({
+        x: sun.x + radius * Math.cos(angle), y: sun.y + radius * Math.sin(angle),
+        vx: sun.vx - v * Math.sin(angle), vy: sun.vy + v * Math.cos(angle),
+        baseM, m, hsl, color: hslStr(hsl), rpx: planetRadiusPx(baseM),
+        ax: 0, ay: 0, trail: [],
+      });
+    });
+    computeAccelerations([sun, ...planets]);
+  }
+
   function predictOrbit(state) {
     // Two-body (sun-only) estimate, adaptive leapfrog, relative to sun.
     let x = state.x - sun.x, y = state.y - sun.y;
@@ -280,12 +309,18 @@
   canvas.addEventListener('pointerup', e => endDrag(e, false));
   canvas.addEventListener('pointercancel', e => endDrag(e, true));
 
+  function clearPlanets() {
+    planets = [];
+    flashes = [];
+    computeAccelerations([sun]);
+  }
+
   window.addEventListener('keydown', e => {
     if (e.target instanceof HTMLInputElement && e.code !== 'Space') return;
     if (e.code === 'Space') { paused = !paused; e.preventDefault(); }
     else if (e.key === '+' || e.key === '=') setSpeed(speed * 2);
     else if (e.key === '-' || e.key === '_') setSpeed(speed / 2);
-    else if (e.key === 'c' || e.key === 'C') { planets = []; flashes = []; }
+    else if (e.key === 'c' || e.key === 'C') clearPlanets();
     else if (e.key === 'f' || e.key === 'F') {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
       else document.exitFullscreen?.();
@@ -339,6 +374,8 @@
   });
   const menu = document.getElementById('menu');
   document.getElementById('menuBtn').addEventListener('click', () => menu.classList.toggle('open'));
+  document.getElementById('createSolarSystem').addEventListener('click', createSolarSystem);
+  document.getElementById('clearPlanets').addEventListener('click', clearPlanets);
   setSpeed(speed);
 
   // ---------- Rendering ----------
